@@ -1,3 +1,7 @@
+/*
+ * This code is based on https://github.com/lotabout/buddy-system.git *
+ * The buddy system algorithm from the user lotabout from GitHub      *
+ */
 #include "buddy.h"
 
 #define max(a, b) (((a)>(b))?(a):(b))
@@ -177,56 +181,11 @@ void buddy_free(struct buddy *self, int offset, int* index_mod) {
     }
 }
 
-void buddy_dump(struct buddy *self) {
-    int len = self->size << 1;
-    int max_col = self->size << 1; 
-    int level = 0;
-    int i,j;
-
-    char cs[] = {'/', '\\'};
-    int idx = 0;
-    char c;
-
-    for (i = 0, max_col=len, level=0; i < len-1; i++) {
-        if (is_power_of_2(i+1)) {
-            max_col >>= 1;
-            level ++;
-            idx = 0;
-            printf("\n%d(%.2d): ", level, max_col);
-        }
-
-        printf("%*ld", max_col, self->longest[i]);
-    }
-
-    for (i = 0, max_col=len, level=0; i < len-1; i++) {
-        if (is_power_of_2(i+1)) {
-            max_col >>= 1;
-            level ++;
-            idx = 0;
-            printf("\n%d(%.2d): ", level, max_col);
-        }
-
-        if (self->longest[i] > 0) {
-            c = '-';
-        } else {
-            c = cs[idx];
-            idx ^= 0x1;
-        }
-
-        for (j = 0; j < max_col; j++) {
-            printf("%c", c);
-        }
-    }
-    printf("\n");
-}
-
 int buddy_size(struct buddy *self, int offset) {
     unsigned node_size = 1;
     unsigned index = offset + self->size - 1;
-
     for (; self->longest[index]; index = parent(index)) {
         node_size >>= 1;
     }
-
     return node_size;
 }

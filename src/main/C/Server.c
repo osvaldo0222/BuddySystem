@@ -1,7 +1,3 @@
-/*
- * This code is based on https://github.com/lotabout/buddy-system.git *
- * The buddy system algorithm from the user lotabout from GitHub      *
- */ 
 #include "buddy.h"
 #include <unistd.h>
 #include <time.h>
@@ -11,46 +7,53 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+//PORT for the services
 #define PORT 4567
+//ALLOC command
 #define ALLOCATE 0
+//FREE command
 #define FREE 1
+//Numbers of process
 #define THREADS	5
+//1 MB Max
 #define MEMORY_MAXIMUM_SIZE	1024
+//32 Byte Min
 #define MEMORY_MINIMUN_SIZE	32
+//The minimun memory that a proccess can request
 #define MEMORY_MINIMUN_ALLOCATION 2
+//Exponential lambdas
 #define LAMBDA_ALLOC 0.07
 #define LAMBDA_FREE 0.2
+//Buffer size to comunicate with the client
 #define	BUFFER_SIZE	50
 
+int randomMemory(void);
 double getTimeExponential(int);
 void initClient(struct buddy*, int);
 void closeProgram(void);
 void* responseClient(void*);
-void* Thread(void*);
 void buffer_fill(int, int, int, int);
-int randomMemory(void);
 bool twoPower(int);
 int nearPowerOfTwo(int);
+void* Thread(void*);
 
-struct Process {
+typedef struct Process {
 	pthread_t id;
 	int PID;
 	int socket;
 	struct buddy* buddy;
-};
+}Process;
 
-
-int memorySize = 5;
+int memorySize;
 sem_t mutex;
-struct Process process[THREADS];
+Process process[THREADS];
 static char buffer[BUFFER_SIZE];
 
-
 int main(void) {
+    srand(time(NULL));
 	int socket_descriptor, client_descriptor, lenAddr;
 	struct sockaddr_in server, client;
 	pthread_t client_connection;
-	srand(time(NULL));
 
 	socket_descriptor = socket(AF_INET, SOCK_STREAM, 0);
 	if (socket_descriptor == -1) {
@@ -217,6 +220,7 @@ void buffer_fill(int command, int position, int size, int randomMem) {
 	if (command == FREE) {
 		strcat(command_temp, "FREE");
 	}
+	//COMMAND(MemoryRequest)@Position:MemoryResponse
 	strcat(buffer, command_temp);
 	strcat(buffer, random);
 	strcat(buffer, "@");
