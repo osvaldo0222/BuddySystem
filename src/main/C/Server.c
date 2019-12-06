@@ -27,7 +27,7 @@ void initClient(struct buddy*, int);
 void closeProgram(void);
 void* responseClient(void*);
 void* Thread(void*);
-void buffer_fill(int, int, int);
+void buffer_fill(int, int, int, int);
 int randomMemory(void);
 bool twoPower(int);
 int nearPowerOfTwo(int);
@@ -173,7 +173,8 @@ void* Thread(void* args) {
 
 	while (1) {
 		sleep(getTimeExponential(ALLOCATE));
-		size = nearPowerOfTwo(randomMemory());
+		int randomMem = randomMemory();
+		size = nearPowerOfTwo(randomMem);
 		int index_mod_alloc, index_mod_free;
 		do {
 			sem_wait(&mutex);
@@ -186,7 +187,7 @@ void* Thread(void* args) {
 			size = nearPowerOfTwo(size);
 
 			sem_wait(&mutex);
-			buffer_fill(ALLOCATE, index_mod_alloc, size);
+			buffer_fill(ALLOCATE, index_mod_alloc, size, randomMem);
 			write(process[0].socket, buffer, strlen(buffer));
 			sleep(1);
 			sem_post(&mutex);
@@ -195,7 +196,7 @@ void* Thread(void* args) {
 			buddy_free(process->buddy, position, &index_mod_free);
 
 			sem_wait(&mutex);
-			buffer_fill(FREE, index_mod_free, size);
+			buffer_fill(FREE, index_mod_free, size, randomMem);
 			write(process[0].socket, buffer, strlen(buffer));
 			sleep(1);
 			sem_post(&mutex);
@@ -204,9 +205,10 @@ void* Thread(void* args) {
 	}
 }
 
-void buffer_fill(int command, int position, int size) {
-	char position_temp[10], size_temp[10], command_temp[10];
+void buffer_fill(int command, int position, int size, int randomMem) {
+	char position_temp[10], size_temp[10], command_temp[10], random[10];
 	memset(buffer, 0, BUFFER_SIZE);
+	sprintf(random, "(%d)", randomMem);
 	sprintf(position_temp, "%d", position);
 	sprintf(size_temp, "%d", size);
 	if (command == ALLOCATE) {
@@ -216,6 +218,7 @@ void buffer_fill(int command, int position, int size) {
 		strcat(command_temp, "FREE");
 	}
 	strcat(buffer, command_temp);
+	strcat(buffer, random);
 	strcat(buffer, "@");
 	strcat(buffer, position_temp);
 	strcat(buffer, ":");

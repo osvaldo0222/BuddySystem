@@ -1,6 +1,8 @@
 package logical;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +14,8 @@ public class Controller extends Thread {
     private JProgressBar jProgressBar;
     private int memorySize;
     private int memoryUsage;
+    private DefaultListModel<String> logs;
+    private JList jList;
     private static Controller controller = null;
 
     private Controller() {
@@ -88,6 +92,7 @@ public class Controller extends Thread {
         jLabel.setBounds((mainPanel.getWidth()/2) - 40, 10, 100, 15);
         mainPanel.add(jLabel);
         float width = mainPanel.getWidth() - 20;
+        int height_acum = 40;
         int height = 30;
         int x = 10;
         int y = 30;
@@ -102,6 +107,7 @@ public class Controller extends Thread {
                 x = 10;
                 y += 30;
                 width /= 2;
+                height_acum += height;
             }
             prevValue = aux.getInitValue();
             aux.getMemory().setBounds(x, y, (int) width, height);
@@ -119,20 +125,39 @@ public class Controller extends Thread {
         jPanel.setSize(new Dimension(mainPanel.getWidth() - 20, 60));
         jPanel.setBounds(10, y + 15, mainPanel.getWidth() - 20, 60);
         jProgressBar.setPreferredSize(new Dimension(mainPanel.getWidth() - 20, 20));
+        height_acum += jPanel.getHeight();
         mainPanel.add(jPanel);
+        logs = new DefaultListModel<>();
+        jList = new JList(logs);
+        jList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        jList.setLayoutOrientation(JList.VERTICAL_WRAP);
+        jList.setVisibleRowCount(-1);
+        JScrollPane listScroller = new JScrollPane();
+        listScroller.setViewportView(jList);
+        jList.setAutoscrolls(true);
+        listScroller.setPreferredSize(new Dimension(mainPanel.getWidth() - 20, mainPanel.getHeight() - height_acum - 110));
+        listScroller.setBounds(10, y + 80, mainPanel.getWidth() - 20, mainPanel.getHeight() - height_acum - 110);
+        listScroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        mainPanel.add(listScroller);
     }
 
     private void calculate(String[] command){
         int index = Integer.parseInt(command[1].split(":")[0].trim());
         int parent = parent(index);
         int memory = Integer.parseInt(command[1].split(":")[1].trim());
-        switch (command[0].toLowerCase()) {
+        String[] divide = command[0].split("\\(");
+        divide[1] = divide[1].replaceFirst("\\)", "");
+        //divide[0] tiene el comando
+        //divide[1] tiene la memoria que el proceso pidio
+        String comando = "";
+        switch (divide[0].toLowerCase()) {
             case "alloc":
                 heap.get(index).setCurrentValue(heap.get(index).getCurrentValue() - memory);
                 heap.get(index).getMemory().setText(heap.get(index).getCurrentValue() + "");
                 heap.get(index).setStatus("allocated");
                 heap.get(index).getMemory().setBackground(Color.RED);
                 memoryUsage += memory;
+                comando = "SO@Final>Se pidierón " + divide[1] + " bytes se otorgó un espacio de " + memory + " bytes";
                 break;
             case "free":
                 heap.get(index).setCurrentValue(heap.get(index).getCurrentValue() + memory);
@@ -140,10 +165,23 @@ public class Controller extends Thread {
                 heap.get(index).setStatus("free");
                 heap.get(index).getMemory().setBackground(Color.GREEN);
                 memoryUsage -= memory;
+                comando = "SO@Final>Se liberarón " + memory + " bytes";
                 break;
         }
+        logs.addElement(comando);
         float porcentage = (float) ((float)(memorySize - memoryUsage)/(float)memorySize) * 100;
-        jProgressBar.setValue( 100 - (int) porcentage);
+        jProgressBar.setValue(100 - (int) porcentage);
+        if (index != 0) {
+            int left = leftChild(parent), right = rightChild(parent);
+            if (heap.get(left).getStatus().equalsIgnoreCase("allocated") && heap.get(right).getStatus().equalsIgnoreCase("allocated")) {
+                heap.get(parent).setStatus("allocated");
+                heap.get(parent).getMemory().setBackground(Color.RED);
+            } else {
+                heap.get(parent).setStatus("free");
+                heap.get(parent).getMemory().setBackground(Color.GREEN);
+            }
+        }
+
     }
 
     public boolean twoPower(int n) {
@@ -156,7 +194,6 @@ public class Controller extends Thread {
             String frame = client.readLine();
             if (!frame.trim().equals("") && frame.contains("@")) {
                 calculate(frame.split("@"));
-                System.out.println(frame);
             }
         }
     }
